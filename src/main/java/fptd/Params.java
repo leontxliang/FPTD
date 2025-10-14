@@ -24,17 +24,17 @@ public class Params {
     public static final BigInteger CONSTANT_FOR_LOG = BigInteger.valueOf(10).pow(exp);
     public static final BigInteger FIXED_DIVISOR_FOR_LOG = BigInteger.valueOf(10).pow(exp - 1);
 
-    public final static String sensingDataFile = "datasets/d_Duck_Identification/answer.csv";
-    public final static String truthFile = "datasets/d_Duck_Identification/truth.csv";
-    public final static boolean isCategoricalData = true;
+//    public final static String sensingDataFile = "datasets/d_Duck_Identification/answer.csv";
+//    public final static String truthFile = "datasets/d_Duck_Identification/truth.csv";
+//    public final static boolean isCategoricalData = true;
 
 //        public final static String sensingDataFile = "datasets/s4_Dog_data/answer.csv";
 //        public final static String truthFile = "datasets/s4_Dog_data/truth.csv";
 //        public final static boolean isCategoricalData = true;
 
-//        public final static String sensingDataFile = "datasets/weather/answer.csv";
-//        public final static String truthFile = "datasets/weather/truth.csv";
-//        public final static boolean isCategoricalData = false;
+        public final static String sensingDataFile = "datasets/weather/answer.csv";
+        public final static String truthFile = "datasets/weather/truth.csv";
+        public final static boolean isCategoricalData = false;
 }
 
 
