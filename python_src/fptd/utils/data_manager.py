@@ -1,10 +1,10 @@
 """
-数据管理类
+数据管理类 (NumPy 版本)
 """
 
 import csv
-import os
-from typing import List, Dict, Tuple, Optional
+import numpy as np
+from typing import Dict, Tuple, List
 from ..params import Params
 from .tool import Tool
 
@@ -33,16 +33,11 @@ class DataManager:
         # 转换为矩阵格式
         self.sensing_data_matrix, self.filter_matrix, self.exam_ids = self._change_to_matrix()
         
-        # 真实值列表 (按exam_id排序)
-        self.truth_list = [self.truth_data.get(eid, 0.0) for eid in self.exam_ids]
+        # 真实值数组
+        self.truth_array = np.array([self.truth_data.get(eid, np.nan) for eid in self.exam_ids])
     
     def _read_sensing_data(self) -> Dict[int, Dict[int, float]]:
-        """
-        读取感知数据
-        
-        Returns:
-            worker2exam2answer[worker_id][exam_id] = answer
-        """
+        """读取感知数据"""
         worker2exam2answer: Dict[int, Dict[int, float]] = {}
         
         with open(self.sensing_data_file, 'r') as f:
@@ -59,12 +54,7 @@ class DataManager:
         return worker2exam2answer
     
     def _read_truth_data(self) -> Dict[int, float]:
-        """
-        读取真实值数据
-        
-        Returns:
-            exam2truth[exam_id] = truth_value
-        """
+        """读取真实值数据"""
         exam2truth: Dict[int, float] = {}
         
         with open(self.truth_file, 'r') as f:
@@ -76,13 +66,13 @@ class DataManager:
         
         return exam2truth
     
-    def _change_to_matrix(self) -> Tuple[List[List[int]], List[List[bool]], List[int]]:
+    def _change_to_matrix(self) -> Tuple[np.ndarray, np.ndarray, List[int]]:
         """
         将感知数据转换为矩阵格式
         
         Returns:
-            sensing_data_matrix[worker_idx][exam_idx]: 定点数格式的感知数据
-            filter_matrix[worker_idx][exam_idx]: 是否有数据
+            sensing_data_matrix: shape (worker_num, exam_num), 定点数格式
+            filter_matrix: shape (worker_num, exam_num), 布尔值
             exam_ids: 问题ID列表
         """
         # 获取所有工人和问题
@@ -96,79 +86,65 @@ class DataManager:
             all_exam_ids.update(self.raw_sensing_data[worker_id].keys())
         exam_ids = sorted(all_exam_ids)
         
-        # 构建矩阵
-        sensing_data_matrix: List[List[int]] = []
-        filter_matrix: List[List[bool]] = []
+        worker_num = len(worker_ids)
+        exam_num = len(exam_ids)
         
-        for worker_id in worker_ids:
+        # 构建矩阵
+        sensing_data_matrix = np.zeros((worker_num, exam_num), dtype=object)
+        filter_matrix = np.zeros((worker_num, exam_num), dtype=bool)
+        
+        for w_idx, worker_id in enumerate(worker_ids):
             worker_data = self.raw_sensing_data[worker_id]
-            row_data: List[int] = []
-            row_filter: List[bool] = []
-            
-            for exam_id in exam_ids:
+            for e_idx, exam_id in enumerate(exam_ids):
                 if exam_id in worker_data:
-                    # 转换为定点数
-                    value = Tool.to_fixed_point(worker_data[exam_id])
-                    row_data.append(value)
-                    row_filter.append(True)
-                else:
-                    # 缺失数据用0填充
-                    row_data.append(0)
-                    row_filter.append(False)
-            
-            sensing_data_matrix.append(row_data)
-            filter_matrix.append(row_filter)
+                    sensing_data_matrix[w_idx, e_idx] = Tool.to_fixed_point(worker_data[exam_id])
+                    filter_matrix[w_idx, e_idx] = True
         
         return sensing_data_matrix, filter_matrix, exam_ids
     
+    @property
+    def worker_num(self) -> int:
+        """工人数量"""
+        return self.sensing_data_matrix.shape[0]
+    
+    @property
+    def exam_num(self) -> int:
+        """问题数量"""
+        return self.sensing_data_matrix.shape[1]
+    
     def get_worker_num(self) -> int:
         """获取工人数量"""
-        return len(self.sensing_data_matrix)
+        return self.worker_num
     
     def get_exam_num(self) -> int:
         """获取问题数量"""
-        return len(self.exam_ids)
+        return self.exam_num
     
-    def get_sensing_data_for_exam(self, exam_idx: int) -> Tuple[List[int], List[bool]]:
-        """
-        获取某个问题的所有工人答案
-        
-        Returns:
-            data: 各工人的答案
-            filter: 各工人是否有答案
-        """
-        data = [self.sensing_data_matrix[w][exam_idx] for w in range(self.get_worker_num())]
-        filter_vec = [self.filter_matrix[w][exam_idx] for w in range(self.get_worker_num())]
-        return data, filter_vec
+    def get_sensing_data_for_exam(self, exam_idx: int) -> Tuple[np.ndarray, np.ndarray]:
+        """获取某个问题的所有工人答案"""
+        return self.sensing_data_matrix[:, exam_idx], self.filter_matrix[:, exam_idx]
     
-    def get_sensing_data_for_worker(self, worker_idx: int) -> Tuple[List[int], List[bool]]:
-        """
-        获取某个工人的所有答案
-        
-        Returns:
-            data: 各问题的答案
-            filter: 各问题是否有答案
-        """
-        return self.sensing_data_matrix[worker_idx], self.filter_matrix[worker_idx]
+    def get_sensing_data_for_worker(self, worker_idx: int) -> Tuple[np.ndarray, np.ndarray]:
+        """获取某个工人的所有答案"""
+        return self.sensing_data_matrix[worker_idx, :], self.filter_matrix[worker_idx, :]
     
-    def evaluate_predictions(self, predictions: List[float]) -> Tuple[float, float]:
-        """
-        评估预测结果
+    def get_float_data(self) -> np.ndarray:
+        """获取浮点数格式的感知数据"""
+        float_data = np.zeros((self.worker_num, self.exam_num), dtype=float)
+        for w in range(self.worker_num):
+            for e in range(self.exam_num):
+                if self.filter_matrix[w, e]:
+                    float_data[w, e] = Tool.to_float(int(self.sensing_data_matrix[w, e]))
+        return float_data
+    
+    def evaluate_predictions(self, predictions: np.ndarray) -> Tuple[float, float]:
+        """评估预测结果"""
+        predictions = np.asarray(predictions)
         
-        Args:
-            predictions: 预测值列表
-            
-        Returns:
-            (RMSE, MAE)
-        """
         # 只评估有真实值的问题
-        valid_preds = []
-        valid_truths = []
-        
-        for i, exam_id in enumerate(self.exam_ids):
-            if exam_id in self.truth_data:
-                valid_preds.append(predictions[i])
-                valid_truths.append(self.truth_data[exam_id])
+        valid_mask = ~np.isnan(self.truth_array)
+        valid_preds = predictions[valid_mask]
+        valid_truths = self.truth_array[valid_mask]
         
         rmse = Tool.get_accuracy_rmse(valid_preds, valid_truths)
         mae = Tool.get_accuracy_mae(valid_preds, valid_truths)

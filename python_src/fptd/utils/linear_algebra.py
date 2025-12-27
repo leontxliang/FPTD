@@ -1,90 +1,72 @@
 """
-线性代数工具类
+线性代数工具类 (NumPy 版本)
 """
 
-from typing import List, Optional
+import numpy as np
+from typing import List, Union
 from ..params import Params
 from ..share import Share
 
 
 class LinearAlgebra:
-    """向量和矩阵运算工具"""
+    """向量和矩阵运算工具 (使用 NumPy 加速)"""
     
     @staticmethod
     def add_shares_vec(vec1: List[Share], vec2: List[Share]) -> List[Share]:
         """份额向量加法"""
-        if len(vec1) != len(vec2):
-            raise ValueError("Vectors must have the same length")
         return [s1 + s2 for s1, s2 in zip(vec1, vec2)]
     
     @staticmethod
     def subtract_shares_vec(vec1: List[Share], vec2: List[Share]) -> List[Share]:
         """份额向量减法"""
-        if len(vec1) != len(vec2):
-            raise ValueError("Vectors must have the same length")
         return [s1 - s2 for s1, s2 in zip(vec1, vec2)]
     
     @staticmethod
-    def add_bigint_vec(vec1: List[int], vec2: List[int]) -> List[int]:
-        """整数向量加法"""
-        if len(vec1) != len(vec2):
-            raise ValueError("Vectors must have the same length")
-        return [(v1 + v2) % Params.P for v1, v2 in zip(vec1, vec2)]
+    def add_vec(vec1: np.ndarray, vec2: np.ndarray, p: int = None) -> np.ndarray:
+        """向量加法 (模 p)"""
+        p = p or Params.P
+        return (vec1 + vec2) % p
     
     @staticmethod
-    def subtract_bigint_vec(vec1: List[int], vec2: List[int]) -> List[int]:
-        """整数向量减法"""
-        if len(vec1) != len(vec2):
-            raise ValueError("Vectors must have the same length")
-        return [(v1 - v2) % Params.P for v1, v2 in zip(vec1, vec2)]
+    def subtract_vec(vec1: np.ndarray, vec2: np.ndarray, p: int = None) -> np.ndarray:
+        """向量减法 (模 p)"""
+        p = p or Params.P
+        return (vec1 - vec2) % p
     
     @staticmethod
-    def elem_wise_multiply_shares(vec1: List[Share], vec2: List[Share]) -> List[Share]:
-        """份额向量逐元素乘法 (仅用于本地计算，不是安全乘法)"""
-        if len(vec1) != len(vec2):
-            raise ValueError("Vectors must have the same length")
-        return [Share(s1.party_id, (s1.shr * s2.shr) % Params.P) for s1, s2 in zip(vec1, vec2)]
+    def elem_wise_multiply(vec1: np.ndarray, vec2: np.ndarray, p: int = None) -> np.ndarray:
+        """逐元素乘法 (模 p)"""
+        p = p or Params.P
+        return (vec1 * vec2) % p
     
     @staticmethod
-    def elem_wise_multiply_bigint(vec1: List[int], vec2: List[int]) -> List[int]:
-        """整数向量逐元素乘法"""
-        if len(vec1) != len(vec2):
-            raise ValueError("Vectors must have the same length")
-        return [(v1 * v2) % Params.P for v1, v2 in zip(vec1, vec2)]
+    def scale_vec(vec: np.ndarray, scalar: int, p: int = None) -> np.ndarray:
+        """向量缩放 (模 p)"""
+        p = p or Params.P
+        return (vec * scalar) % p
     
     @staticmethod
-    def scale_shares_vec(vec: List[Share], scalar: int) -> List[Share]:
-        """份额向量缩放"""
-        return [s * scalar for s in vec]
+    def dot_product(vec1: np.ndarray, vec2: np.ndarray, p: int = None) -> int:
+        """向量点积 (模 p)"""
+        p = p or Params.P
+        # 使用 Python int 避免溢出
+        return int(np.sum(vec1.astype(object) * vec2.astype(object)) % p)
     
     @staticmethod
-    def scale_bigint_vec(vec: List[int], scalar: int) -> List[int]:
-        """整数向量缩放"""
-        return [(v * scalar) % Params.P for v in vec]
-    
-    @staticmethod
-    def dot_product_bigint(vec1: List[int], vec2: List[int]) -> int:
-        """整数向量点积"""
-        if len(vec1) != len(vec2):
-            raise ValueError("Vectors must have the same length")
-        result = 0
-        for v1, v2 in zip(vec1, vec2):
-            result = (result + v1 * v2) % Params.P
-        return result
-    
-    @staticmethod
-    def dot_product_shares_bigint(shares: List[Share], bigints: List[int]) -> Share:
+    def dot_product_shares_bigint(shares: List[Share], bigints: np.ndarray) -> Share:
         """份额向量与整数向量点积"""
-        if len(shares) != len(bigints):
-            raise ValueError("Vectors must have the same length")
         if not shares:
             raise ValueError("Vectors cannot be empty")
-        
         party_id = shares[0].party_id
-        result = 0
-        for s, b in zip(shares, bigints):
-            result = (result + s.shr * b) % Params.P
+        share_vals = np.array([s.shr for s in shares], dtype=object)
+        result = int(np.sum(share_vals * bigints.astype(object)) % Params.P)
         return Share(party_id, result)
+    
+    @staticmethod
+    def sum_vec(vec: np.ndarray, p: int = None) -> int:
+        """向量求和 (模 p)"""
+        p = p or Params.P
+        return int(np.sum(vec.astype(object)) % p)
     
     @staticmethod
     def sum_shares(shares: List[Share]) -> Share:
@@ -96,44 +78,48 @@ class LinearAlgebra:
         return Share(party_id, total)
     
     @staticmethod
-    def sum_bigint(values: List[int]) -> int:
-        """整数向量求和"""
-        return sum(values) % Params.P
-    
-    @staticmethod
-    def do_filter(vec: List, filter_vec: List[bool]):
+    def do_filter(vec: np.ndarray, filter_vec: np.ndarray) -> np.ndarray:
         """根据布尔过滤器过滤向量"""
-        if len(vec) != len(filter_vec):
-            raise ValueError("Vector and filter must have the same length")
-        return [v for v, f in zip(vec, filter_vec) if f]
+        return vec[filter_vec]
     
     @staticmethod
-    def dot_product_with_filter(vec1: List[int], vec2: List[int], filter_vec: List[bool]) -> int:
+    def dot_product_with_filter(vec1: np.ndarray, vec2: np.ndarray, 
+                                 filter_vec: np.ndarray, p: int = None) -> int:
         """带过滤器的点积"""
-        if len(vec1) != len(vec2) or len(vec1) != len(filter_vec):
-            raise ValueError("All vectors must have the same length")
-        result = 0
-        for v1, v2, f in zip(vec1, vec2, filter_vec):
-            if f:
-                result = (result + v1 * v2) % Params.P
-        return result
+        p = p or Params.P
+        filtered1 = vec1[filter_vec].astype(object)
+        filtered2 = vec2[filter_vec].astype(object)
+        return int(np.sum(filtered1 * filtered2) % p)
     
     @staticmethod
-    def negate_shares_vec(vec: List[Share]) -> List[Share]:
-        """份额向量取负"""
-        return [Share(s.party_id, (-s.shr) % Params.P) for s in vec]
+    def negate_vec(vec: np.ndarray, p: int = None) -> np.ndarray:
+        """向量取负 (模 p)"""
+        p = p or Params.P
+        return (-vec) % p
     
     @staticmethod
-    def negate_bigint_vec(vec: List[int]) -> List[int]:
-        """整数向量取负"""
-        return [(-v) % Params.P for v in vec]
+    def to_numpy(lst: List[int]) -> np.ndarray:
+        """将列表转换为 NumPy 数组"""
+        return np.array(lst, dtype=object)
     
     @staticmethod
-    def copy_shares_vec(vec: List[Share]) -> List[Share]:
-        """复制份额向量"""
-        return [s.copy() for s in vec]
+    def to_list(arr: np.ndarray) -> List[int]:
+        """将 NumPy 数组转换为列表"""
+        return [int(x) for x in arr]
     
     @staticmethod
-    def copy_bigint_vec(vec: List[int]) -> List[int]:
-        """复制整数向量"""
-        return vec.copy()
+    def zeros(size: int) -> np.ndarray:
+        """创建零向量"""
+        return np.zeros(size, dtype=object)
+    
+    @staticmethod
+    def ones(size: int) -> np.ndarray:
+        """创建全1向量"""
+        return np.ones(size, dtype=object)
+
+
+# 便捷函数
+def np_mod(arr: np.ndarray, p: int = None) -> np.ndarray:
+    """对数组取模"""
+    p = p or Params.P
+    return arr % p

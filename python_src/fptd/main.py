@@ -4,18 +4,31 @@ FPTD 主程序入口
 
 import os
 import sys
+import argparse
+import time
 
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fptd.params import Params
 from fptd.utils.data_manager import DataManager
-from fptd.utils.tool import Tool
 from fptd.truth_discovery.td_online import run_truth_discovery
 
 
 def main():
     """主函数"""
+    parser = argparse.ArgumentParser(description='FPTD - Fast Privacy-Preserving Truth Discovery')
+    parser.add_argument('--iterations', '-i', type=int, default=None,
+                        help='Number of iterations')
+    parser.add_argument('--quiet', '-q', action='store_true',
+                        help='Quiet mode (less output)')
+    args = parser.parse_args()
+    
+    if args.iterations:
+        Params.ITER_TD = args.iterations
+    if args.quiet:
+        Params.IS_PRINT_EXE_INFO = False
+    
     if Params.IS_PRINT_EXE_INFO:
         print("=" * 60)
         print("FPTD - Fast Privacy-Preserving Truth Discovery")
@@ -40,8 +53,8 @@ def main():
         is_categorical=Params.IS_CATEGORICAL_DATA
     )
     
-    worker_num = data_manager.get_worker_num()
-    exam_num = data_manager.get_exam_num()
+    worker_num = data_manager.worker_num
+    exam_num = data_manager.exam_num
     
     if Params.IS_PRINT_EXE_INFO:
         print(f"\nDataset statistics:")
@@ -55,7 +68,9 @@ def main():
         print("Running Truth Discovery...")
         print("-" * 60)
     
+    start_time = time.time()
     predictions = run_truth_discovery(data_manager)
+    elapsed_time = time.time() - start_time
     
     # 评估结果
     if Params.IS_PRINT_EXE_INFO:
@@ -68,6 +83,7 @@ def main():
     print(f"\nResults:")
     print(f"  RMSE: {rmse:.4f}")
     print(f"  MAE: {mae:.4f}")
+    print(f"  Time: {elapsed_time:.4f}s")
     
     # 显示部分预测结果
     if Params.IS_PRINT_EXE_INFO:

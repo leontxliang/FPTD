@@ -1,9 +1,10 @@
 """
-Shamir秘密共享实现
+Shamir 秘密共享实现 (NumPy 版本)
 """
 
 import secrets
-from typing import List
+import numpy as np
+from typing import List, Union
 from ..params import Params
 from ..share import Share
 
@@ -21,123 +22,138 @@ class ShamirSharing:
         self.n = n or Params.N
         self.t = t or Params.T
         self.p = p or Params.P
+        
+        # 预计算拉格朗日系数 (用于恢复秘密)
+        self._lagrange_coeffs = None
     
     def get_shares(self, secret: int) -> List[Share]:
         """
-        将秘密分割成n个份额
+        将秘密分割成 n 个份额
         
         构造 (t-1) 次多项式: f(x) = secret + a1*x + a2*x^2 + ... + a_{t-1}*x^{t-1}
         在点 x=1,2,...,n 处求值生成份额
-        
-        Args:
-            secret: 要分享的秘密值
-            
-        Returns:
-            n个份额的列表
         """
-        secret = secret % self.p
+        secret = int(secret) % self.p
         
-        # 生成随机系数 a1, a2, ..., a_{t-1}
-        coefficients = [secret]
-        for _ in range(self.t - 1):
-            coefficients.append(secrets.randbelow(self.p))
+        # 生成随机系数
+        coefficients = np.array(
+            [secret] + [secrets.randbelow(self.p) for _ in range(self.t - 1)],
+            dtype=object
+        )
         
         # 在点 x=1,2,...,n 处求值
         shares = []
         for i in range(1, self.n + 1):
-            # 计算 f(i) = secret + a1*i + a2*i^2 + ...
-            value = 0
-            x_power = 1
-            for coeff in coefficients:
-                value = (value + coeff * x_power) % self.p
-                x_power = (x_power * i) % self.p
-            shares.append(Share(i - 1, value))  # party_id从0开始
+            # 使用霍纳法则计算多项式值
+            value = coefficients[-1]
+            for coeff in coefficients[-2::-1]:
+                value = (value * i + coeff) % self.p
+            shares.append(Share(i - 1, int(value)))
         
         return shares
     
-    def recover(self, shares: List[Share]) -> int:
+    def get_shares_batch(self, secrets_arr: np.ndarray) -> np.ndarray:
         """
-        从份额中恢复秘密 (拉格朗日插值)
+        批量生成份额
         
         Args:
-            shares: 至少t个份额
+            secrets_arr: 秘密值数组
             
         Returns:
-            恢复的秘密值
+            shares_matrix: shape (n, len(secrets_arr)), shares_matrix[party_idx][secret_idx]
         """
+        num_secrets = len(secrets_arr)
+        secrets_arr = secrets_arr.astype(object) % self.p
+        
+        # 生成随机系数矩阵 (t-1, num_secrets)
+        rand_coeffs = np.array(
+            [[secrets.randbelow(self.p) for _ in range(num_secrets)] for _ in range(self.t - 1)],
+            dtype=object
+        )
+        
+        # 系数矩阵 (t, num_secrets), 第一行是秘密
+        coefficients = np.vstack([secrets_arr.reshape(1, -1), rand_coeffs])
+        
+        # 计算每个参与方的份额
+        shares_matrix = np.zeros((self.n, num_secrets), dtype=object)
+        for i in range(1, self.n + 1):
+            # 霍纳法则
+            value = coefficients[-1].copy()
+            for coeff in coefficients[-2::-1]:
+                value = (value * i + coeff) % self.p
+            shares_matrix[i - 1] = value
+        
+        return shares_matrix
+    
+    def recover(self, shares: List[Share]) -> int:
+        """从份额中恢复秘密 (拉格朗日插值)"""
         if len(shares) < self.t:
             raise ValueError(f"Need at least {self.t} shares, got {len(shares)}")
         
-        # 只使用前t个份额
+        # 只使用前 t 个份额
         shares = shares[:self.t]
-        
-        # 获取x坐标 (party_id + 1)
-        x_coords = [share.party_id + 1 for share in shares]
+        x_coords = np.array([share.party_id + 1 for share in shares], dtype=object)
+        y_coords = np.array([share.shr for share in shares], dtype=object)
         
         # 拉格朗日插值计算 f(0)
         secret = 0
-        for i, share in enumerate(shares):
+        for i in range(self.t):
             xi = x_coords[i]
             
-            # 计算拉格朗日基多项式 L_i(0) = Π_{j≠i} (0 - xj) / (xi - xj)
+            # 计算拉格朗日基多项式 L_i(0)
             numerator = 1
             denominator = 1
-            for j, xj in enumerate(x_coords):
+            for j in range(self.t):
                 if i != j:
+                    xj = x_coords[j]
                     numerator = (numerator * (-xj)) % self.p
                     denominator = (denominator * (xi - xj)) % self.p
             
-            # 计算 L_i(0) = numerator / denominator (mod p)
-            lagrange_coeff = (numerator * pow(denominator, -1, self.p)) % self.p
-            
-            # 累加 share_i * L_i(0)
-            secret = (secret + share.shr * lagrange_coeff) % self.p
+            lagrange_coeff = (numerator * pow(int(denominator), -1, self.p)) % self.p
+            secret = (secret + y_coords[i] * lagrange_coeff) % self.p
         
-        return secret
+        return int(secret)
     
-    def recover_at_point(self, shares: List[Share], point: int) -> int:
+    def recover_batch(self, shares_matrix: np.ndarray) -> np.ndarray:
         """
-        在指定点处进行拉格朗日插值
+        批量恢复秘密
         
         Args:
-            shares: 份额列表
-            point: 插值点
+            shares_matrix: shape (n, num_secrets)
             
         Returns:
-            插值结果
+            secrets_arr: 恢复的秘密数组
         """
-        if len(shares) < self.t:
-            raise ValueError(f"Need at least {self.t} shares, got {len(shares)}")
+        # 只使用前 t 个份额
+        shares_matrix = shares_matrix[:self.t]
+        x_coords = np.arange(1, self.t + 1, dtype=object)
         
-        shares = shares[:self.t]
-        x_coords = [share.party_id + 1 for share in shares]
-        
-        result = 0
-        for i, share in enumerate(shares):
+        # 预计算拉格朗日系数
+        lagrange_coeffs = np.zeros(self.t, dtype=object)
+        for i in range(self.t):
             xi = x_coords[i]
-            
             numerator = 1
             denominator = 1
-            for j, xj in enumerate(x_coords):
+            for j in range(self.t):
                 if i != j:
-                    numerator = (numerator * (point - xj)) % self.p
+                    xj = x_coords[j]
+                    numerator = (numerator * (-xj)) % self.p
                     denominator = (denominator * (xi - xj)) % self.p
-            
-            lagrange_coeff = (numerator * pow(denominator, -1, self.p)) % self.p
-            result = (result + share.shr * lagrange_coeff) % self.p
+            lagrange_coeffs[i] = (numerator * pow(int(denominator), -1, self.p)) % self.p
         
-        return result
+        # 计算秘密
+        secrets_arr = np.zeros(shares_matrix.shape[1], dtype=object)
+        for i in range(self.t):
+            secrets_arr = (secrets_arr + shares_matrix[i] * lagrange_coeffs[i]) % self.p
+        
+        return secrets_arr
 
 
-def generate_shares_for_all_parties(values: List[int], n: int = None, t: int = None) -> List[List[Share]]:
+def generate_shares_for_all_parties(values: Union[List[int], np.ndarray], 
+                                     n: int = None, t: int = None) -> List[List[Share]]:
     """
     为多个值生成所有参与方的份额
     
-    Args:
-        values: 要分享的值列表
-        n: 参与方数量
-        t: 门限值
-        
     Returns:
         shares_per_party[party_idx][value_idx] = Share
     """
@@ -145,13 +161,13 @@ def generate_shares_for_all_parties(values: List[int], n: int = None, t: int = N
     t = t or Params.T
     sharing = ShamirSharing(n, t)
     
-    # shares_per_value[value_idx][party_idx] = Share
-    shares_per_value = [sharing.get_shares(v) for v in values]
+    values = np.asarray(values, dtype=object)
+    shares_matrix = sharing.get_shares_batch(values)
     
-    # 转置为 shares_per_party[party_idx][value_idx] = Share
+    # 转换为 Share 对象列表
     shares_per_party = []
     for party_idx in range(n):
-        party_shares = [shares_per_value[v_idx][party_idx] for v_idx in range(len(values))]
+        party_shares = [Share(party_idx, int(v)) for v in shares_matrix[party_idx]]
         shares_per_party.append(party_shares)
     
     return shares_per_party
