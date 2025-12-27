@@ -1,0 +1,10 @@
+# FPTD - Fast Privacy-Preserving Truth Discovery
+# Python dependencies
+
+# No external dependencies required for core functionality
+# The implementation uses only Python standard library
+
+# Optional dependencies for development and testing:
+# pytest>=7.0.0        # For running tests
+# numpy>=1.20.0        # For numerical operations (optional optimization)
+# matplotlib>=3.5.0    # For visualization (optional)
