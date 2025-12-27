@@ -4,7 +4,7 @@ Python implementation of the paper: **"FPTD: Super Fast Privacy-Preserving and R
 
 ## Overview
 
-FPTD is a privacy-preserving truth discovery system for crowdsensing applications. It uses secure multi-party computation (MPC) based on Shamir's secret sharing scheme to protect user privacy while aggregating crowdsourced data.
+FPTD is a privacy-preserving truth discovery system for crowdsensing applications. This implementation uses NumPy vectorized operations for efficient computation of the CRH (Conflict Resolution on Heterogeneous Data) algorithm.
 
 ## Project Structure
 
@@ -14,29 +14,12 @@ python_src/
 │   ├── __init__.py
 │   ├── main.py                 # Main entry point
 │   ├── params.py               # Global parameters
-│   ├── share.py                # Secret share data structure
-│   ├── edge_server.py          # Server communication
-│   ├── sharing/
-│   │   └── shamir_sharing.py   # Shamir secret sharing
-│   ├── protocols/
-│   │   ├── gate.py             # Base gate class
-│   │   ├── circuit.py          # Circuit class
-│   │   ├── input_gate.py       # Input gate
-│   │   ├── output_gate.py      # Output gate
-│   │   ├── dot_product_gate.py # Dot product gate
-│   │   ├── division_gate.py    # Division gate
-│   │   └── ...                 # Other gates
-│   ├── offline/
-│   │   ├── fake_party.py       # Offline data generator
-│   │   ├── offline_circuit.py  # Offline circuit
-│   │   └── offline_gate.py     # Offline gates
 │   ├── truth_discovery/
-│   │   ├── td_offline.py       # Offline phase
-│   │   └── td_online.py        # Online phase
+│   │   ├── td_offline.py       # Offline phase (MPC protocols)
+│   │   └── td_online.py        # Online phase (CRH algorithm)
 │   └── utils/
-│       ├── data_manager.py     # Data management
-│       ├── linear_algebra.py   # Linear algebra utilities
-│       └── tool.py             # Common tools
+│       ├── data_manager.py     # Data loading and evaluation
+│       └── tool.py             # Common utilities
 ├── setup.py
 ├── requirements.txt
 └── README.md
@@ -45,29 +28,28 @@ python_src/
 ## Requirements
 
 - Python >= 3.8
-- No external dependencies (uses only Python standard library)
+- NumPy
 
 ## Installation
 
 ```bash
-# Install as package
 cd python_src
 pip install -e .
 ```
 
 ## Usage
 
-### Run with default dataset
+### Command Line
 
 ```bash
-cd python_src
 python -m fptd.main
+python -m fptd.main -i 5      # 5 iterations
+python -m fptd.main -q        # quiet mode
 ```
 
-### Use as library
+### As Library
 
 ```python
-from fptd.params import Params
 from fptd.utils.data_manager import DataManager
 from fptd.truth_discovery.td_online import run_truth_discovery
 
@@ -87,15 +69,12 @@ print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}")
 
 ## Configuration
 
-Edit `fptd/params.py` to modify parameters:
+Edit `fptd/params.py`:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `NUM_SERVER` | 7 | Number of servers |
-| `N` | 7 | Number of parties |
-| `T` | 4 | Threshold for secret sharing |
-| `ITER_TD` | 3 | Truth discovery iterations |
-| `PRECISE_ROUND` | 100000 | Fixed-point precision |
+| `ITER_TD` | 3 | Number of iterations |
+| `IS_PRINT_EXE_INFO` | True | Print execution info |
 
 ## Dataset Format
 
@@ -117,29 +96,15 @@ question,truth
 23,81.5
 ```
 
-## Core Components
+## Algorithm
 
-### Secret Sharing
-- **Shamir's (t,n) threshold scheme**: Requires t shares to reconstruct the secret
-
-### Secure Computation Gates
-- **Linear gates**: Add, Subtract, Scale (no communication)
-- **Multiplication gates**: Dot product, Element-wise multiply (using Beaver triples)
-- **Division gate**: Secure truncation protocol
-- **Logarithm gate**: Taylor series approximation
-
-### Truth Discovery Algorithm
+The CRH algorithm iteratively:
 1. Initialize truth estimates with simple average
-2. For each iteration:
-   - Compute distances between worker answers and estimated truth
-   - Calculate worker weights based on distances
-   - Update truth estimates using weighted average
-3. Output final truth estimates
+2. Compute distances between worker answers and estimated truth
+3. Calculate worker weights: `weight[w] = log(sum_all_distance / distance[w])`
+4. Update truth estimates using weighted average
+5. Repeat steps 2-4 for specified iterations
 
 ## License
 
 See the LICENSE file in the root directory.
-
-## Reference
-
-This is the Python implementation of the Java source code from the paper "FPTD: Super Fast Privacy-Preserving and Reliable Truth Discovery for Crowdsensing".
