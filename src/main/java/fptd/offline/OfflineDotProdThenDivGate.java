@@ -3,7 +3,6 @@ package fptd.offline;
 import fptd.Share;
 import fptd.utils.LinearAlgebra;
 import fptd.utils.Tool;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,17 +12,18 @@ public class OfflineDotProdThenDivGate extends OfflineGate {
 
     private List<OfflineGate> xGates = new ArrayList<>(); // The i-th xGate dot-product the i-th yGate
     private List<OfflineGate> yGates = new ArrayList<>();
-//    private FakeOutputGate divisorGate;
+    // private FakeOutputGate divisorGate;
     private int num_dot_prod = -1; //计算dot product的个数
 
     /**
      * 有dim次内积，每一次内积的结果是一个数字，因此，需要使用combine Gate来合并这个内积的output gates，以升维
+     *
      * @param inputGates include X gates, then Y gates, finally on divisorGate,
-     *                   e.g., gateX1, gateX2, ..., gateX_dim, gateY1, gateY2, ..., gateY_dim, divisorGate
+     *         e.g., gateX1, gateX2, ..., gateX_dim, gateY1, gateY2, ..., gateY_dim, divisorGate
      */
     public OfflineDotProdThenDivGate(List<OfflineGate> inputGates) {
         super(inputGates.toArray(new OfflineGate[inputGates.size()]));
-        if(inputGates.size() < 3) {
+        if (inputGates.size() < 3) {
             throw new IllegalArgumentException("wrong number of inputs");
         }
 //        this.divisorGate = (FakeOutputGate) inputGates.getLast();
@@ -31,11 +31,11 @@ public class OfflineDotProdThenDivGate extends OfflineGate {
 //        if(inputGates.size() != this.dim * 2 + 1){
 //            throw new IllegalArgumentException("wrong number of inputs");
 //        }
-        this.num_dot_prod = (inputGates.size()-1) / 2;
-        for(int i = 0; i < num_dot_prod; i++){
+        this.num_dot_prod = (inputGates.size() - 1) / 2;
+        for (int i = 0; i < num_dot_prod; i++) {
             this.xGates.add(inputGates.get(i));
         }
-        for(int i = num_dot_prod; i < inputGates.size()-1; i++){
+        for (int i = num_dot_prod; i < inputGates.size() - 1; i++) {
             this.yGates.add(inputGates.get(i));
         }
         this.dim = num_dot_prod;
@@ -44,7 +44,7 @@ public class OfflineDotProdThenDivGate extends OfflineGate {
     @Override
     void doRunOffline() {
         final int numDotProd = num_dot_prod;
-        for(int dpIdx = 0; dpIdx < numDotProd; dpIdx++) {
+        for (int dpIdx = 0; dpIdx < numDotProd; dpIdx++) {
             List<BigInteger> a_clear_list = new ArrayList<>(firstGate().dim);
             List<BigInteger> b_clear_list = new ArrayList<>(firstGate().dim);
             List<BigInteger> c_clear_list = new ArrayList<>(firstGate().dim);
@@ -62,8 +62,10 @@ public class OfflineDotProdThenDivGate extends OfflineGate {
             List<List<Share>> b_shares = fakeParty.generateAllPartiesShares(b_clear_list);
             List<List<Share>> c_shares = fakeParty.generateAllPartiesShares(c_clear_list);
             // $\delta_x = a - \lambda_x$, $\delta_y = b - \lambda_y$
-            List<BigInteger> delta_x_clear = LinearAlgebra.subtractBigIntVec(a_clear_list, this.xGates.get(dpIdx).lambda_clear_list);
-            List<BigInteger> delta_y_clear = LinearAlgebra.subtractBigIntVec(b_clear_list, this.yGates.get(dpIdx).lambda_clear_list);
+            List<BigInteger> delta_x_clear = LinearAlgebra.subtractBigIntVec(a_clear_list,
+                    this.xGates.get(dpIdx).lambda_clear_list);
+            List<BigInteger> delta_y_clear = LinearAlgebra.subtractBigIntVec(b_clear_list,
+                    this.yGates.get(dpIdx).lambda_clear_list);
             //Write all data to files
             fakeParty.writeSharesToAllParties(a_shares);
             fakeParty.writeSharesToAllParties(b_shares);
@@ -72,13 +74,12 @@ public class OfflineDotProdThenDivGate extends OfflineGate {
             fakeParty.writeClearToAllParties(delta_y_clear);
         }
 
-
         {   //For division
             Random rand = new Random();
             List<BigInteger> r_list = new ArrayList<>();
             List<BigInteger> r1_list = new ArrayList<>();
             List<BigInteger> r2_list = new ArrayList<>();
-            for(int i = 0; i < num_dot_prod; i++) {
+            for (int i = 0; i < num_dot_prod; i++) {
                 BigInteger r = new BigInteger(OfflineDivisionGate.l + OfflineDivisionGate.sigma, rand);
                 BigInteger r1 = new BigInteger(OfflineDivisionGate.e + OfflineDivisionGate.sigma, rand);
                 BigInteger r2 = new BigInteger(OfflineDivisionGate.l + OfflineDivisionGate.sigma, rand);

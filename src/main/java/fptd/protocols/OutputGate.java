@@ -2,7 +2,6 @@ package fptd.protocols;
 
 import fptd.utils.LinearAlgebra;
 import fptd.utils.Tool;
-
 import java.math.BigInteger;
 import java.util.List;
 
@@ -17,7 +16,8 @@ public class OutputGate extends Gate {
     }
 
     @Override
-    void doReadOfflineFromFile() {}
+    void doReadOfflineFromFile() {
+    }
 
     @Override
     void doRunOnline() {
@@ -25,7 +25,7 @@ public class OutputGate extends Gate {
         this.Delta_clear_list = this.firstGate().Delta_clear_list;
 
         edgeServer.sendToKing(this.lambda_share_list);
-        if(edgeServer.isKing()){
+        if (edgeServer.isKing()) {
             //二维数组，每一行表示一个server，每一列表示一个secret的share
             List<Object> receivedShares = edgeServer.kingReadFromAll(); // receive from the network
             List<BigInteger> lambda_clear_list_temp = Tool.openShares2Values(dim, receivedShares);
@@ -40,7 +40,7 @@ public class OutputGate extends Gate {
 
             edgeServer.kingSendToAll(outputValues);
         }
-        this.outputValues = (List<BigInteger>)edgeServer.readFromKing();
+        this.outputValues = (List<BigInteger>) edgeServer.readFromKing();
     }
 
     public List<BigInteger> getOutputValues() {

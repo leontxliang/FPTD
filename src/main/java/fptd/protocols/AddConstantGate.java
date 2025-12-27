@@ -1,7 +1,6 @@
 package fptd.protocols;
 
 import fptd.utils.LinearAlgebra;
-
 import java.math.BigInteger;
 import java.util.List;
 

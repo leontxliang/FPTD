@@ -1,21 +1,19 @@
 package fptd.offline;
 
+import static fptd.Params.P;
+
 import fptd.Share;
 import fptd.utils.LinearAlgebra;
 import fptd.utils.Tool;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import static fptd.Params.P;
-
 public class OfflineElemWiseMultGate extends OfflineGate {
-
 
     public OfflineElemWiseMultGate(OfflineGate inputX, OfflineGate inputY) {
         super(inputX, inputY);
-        if(inputX.dim != inputY.dim) {
+        if (inputX.dim != inputY.dim) {
             throw new IllegalArgumentException("Dims don't match");
         }
         this.dim = inputX.dim;
@@ -46,8 +44,10 @@ public class OfflineElemWiseMultGate extends OfflineGate {
         List<List<Share>> c_shares = fakeParty.generateAllPartiesShares(c_clear_list);
 
         // $\delta_x = a - \lambda_x$, $\delta_y = b - \lambda_y$
-        List<BigInteger> delta_x_clear = LinearAlgebra.subtractBigIntVec(a_clear_list, this.firstGate().lambda_clear_list);
-        List<BigInteger> delta_y_clear = LinearAlgebra.subtractBigIntVec(b_clear_list, this.secondGate().lambda_clear_list);
+        List<BigInteger> delta_x_clear = LinearAlgebra.subtractBigIntVec(a_clear_list,
+                this.firstGate().lambda_clear_list);
+        List<BigInteger> delta_y_clear = LinearAlgebra.subtractBigIntVec(b_clear_list,
+                this.secondGate().lambda_clear_list);
 
         //Write all data to files
         fakeParty.writeSharesToAllParties(a_shares);

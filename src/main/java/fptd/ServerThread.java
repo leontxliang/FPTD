@@ -1,18 +1,17 @@
 package fptd;
 
+import static fptd.Params.IS_PRINT_EXE_INFO;
+
 import fptd.protocols.Circuit;
 import fptd.utils.DataManager;
 import fptd.utils.Metric;
 import fptd.utils.Tool;
-
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
-
-import static fptd.Params.IS_PRINT_EXE_INFO;
+import java.util.TreeMap;
 
 public class ServerThread implements Runnable {
 
@@ -40,31 +39,33 @@ public class ServerThread implements Runnable {
             throw new RuntimeException(e);
         }
 
-        if(Params.IS_PRINT_EXE_INFO){
+        if (Params.IS_PRINT_EXE_INFO) {
             System.out.println("start to read offline randomness from file.");
         }
 
         circuit.readOfflineFromFile();
 
-        if(Params.IS_PRINT_EXE_INFO){
-            System.out.println("Server" + server.getIdx()+ " start to run online circuit.");
+        if (Params.IS_PRINT_EXE_INFO) {
+            System.out.println("Server" + server.getIdx() + " start to run online circuit.");
         }
 
         circuit.runOnline();
 
-        if(Params.IS_PRINT_EXE_INFO){
-            System.out.println("Server" + server.getIdx()+ " end to run online circuit.");
+        if (Params.IS_PRINT_EXE_INFO) {
+            System.out.println("Server" + server.getIdx() + " end to run online circuit.");
         }
-        if(isKing){
+        if (isKing) {
             List<String> namesOfOutputGates = new ArrayList<>();
             List<List<BigInteger>> result = circuit.getOutputValues(namesOfOutputGates);
 
-            for(int i = 0; i < result.size(); i++){
+            for (int i = 0; i < result.size(); i++) {
                 String name = namesOfOutputGates.get(i);
-                if(name.isEmpty()) continue;
+                if (name.isEmpty()) {
+                    continue;
+                }
                 List<BigInteger> predictedTruths = result.get(i);
 
-                if(IS_PRINT_EXE_INFO) {
+                if (IS_PRINT_EXE_INFO) {
                     System.out.print(name + ": ");
                     for (BigInteger value : predictedTruths) {
                         System.out.print(value + "\t");
@@ -72,26 +73,26 @@ public class ServerThread implements Runnable {
                     System.out.println();
                 }
 
-                if(name.startsWith("truth")) {
+                if (name.startsWith("truth")) {
                     Map<String, BigInteger> predictedTruthsMap = new TreeMap<>();
-                    for(int examIdx = 0; examIdx < dataManager.arrayIdx2ExamID.size(); examIdx++){
-                        String examID = dataManager.arrayIdx2ExamID.get(examIdx);
-                        if(dataManager.groundTruths.containsKey(examID)){
+                    for (int examIdx = 0; examIdx < DataManager.arrayIdx2ExamID.size(); examIdx++) {
+                        String examID = DataManager.arrayIdx2ExamID.get(examIdx);
+                        if (DataManager.groundTruths.containsKey(examID)) {
                             predictedTruthsMap.put(examID, predictedTruths.get(examIdx));
                         }
                     }
-                    double acc = Tool.getAccuracy(predictedTruthsMap, dataManager.groundTruths,
-                            Params.PRECISE_ROUND, Metric.RMSE, dataManager.isCategoricalData);
-                    if(IS_PRINT_EXE_INFO) {
+                    double acc = Tool.getAccuracy(predictedTruthsMap, DataManager.groundTruths,
+                            Params.PRECISE_ROUND, Metric.RMSE, DataManager.isCategoricalData);
+                    if (IS_PRINT_EXE_INFO) {
                         System.out.println("Accuracy of " + name + " = " + acc);
                     }
 
-                }else if(name.startsWith("weights")){
+                } else if (name.startsWith("weights")) {
                     BigInteger sum = BigInteger.ZERO;
-                    for(BigInteger value : predictedTruths){
+                    for (BigInteger value : predictedTruths) {
                         sum = sum.add(value);
                     }
-                    System.out.println("Sum of "+name+" = " + sum);
+                    System.out.println("Sum of " + name + " = " + sum);
                 }
 
 

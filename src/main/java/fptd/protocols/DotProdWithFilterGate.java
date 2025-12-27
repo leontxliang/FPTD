@@ -1,13 +1,10 @@
 package fptd.protocols;
 
-import fptd.Params;
 import fptd.Share;
 import fptd.utils.LinearAlgebra;
 import fptd.utils.Tool;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -17,6 +14,7 @@ import java.util.List;
  * 根据inputX和inputY的Delta_clear_list中的元素是否为null来自动构建filter，只有对应的元素都不为null，那么filter才为true
  */
 public class DotProdWithFilterGate extends Gate {
+
     private List<Share> a_shr;
     private List<Share> b_shr;
     private List<Share> c_shr;
@@ -31,7 +29,7 @@ public class DotProdWithFilterGate extends Gate {
      */
     public DotProdWithFilterGate(Gate inputX, Gate inputY) {
         super(inputX, inputY);
-        if(inputX.getDim() != inputY.getDim()) {
+        if (inputX.getDim() != inputY.getDim()) {
             throw new IllegalArgumentException("Input dimensions don't match");
         }
         this.dim = 1;
@@ -51,11 +49,11 @@ public class DotProdWithFilterGate extends Gate {
     void doRunOnline() {
         //initialize the filter
         this.filter = new ArrayList<>();
-        for(int i = 0; i < this.firstGate().dim; i++) {
-            if(this.firstGate().Delta_clear_list.get(i) != null
+        for (int i = 0; i < this.firstGate().dim; i++) {
+            if (this.firstGate().Delta_clear_list.get(i) != null
                     && this.secondGate().Delta_clear_list.get(i) != null) {
                 this.filter.add(true);
-            }else{
+            } else {
                 this.filter.add(false);
             }
         }
@@ -85,14 +83,14 @@ public class DotProdWithFilterGate extends Gate {
 
         //To open Delta_z in the clear
         edgeServer.sendToKing(Delta_z_shr);
-        if(edgeServer.isKing()){
+        if (edgeServer.isKing()) {
             List<Object> shares = edgeServer.kingReadFromAll();
             List<BigInteger> values = Tool.openShares2Values(1, shares);
             values = LinearAlgebra.addBigIntVec(values, temp_xy); // temp_xy is not shared with other servers
             //Let other servers know Delta_clear_list, i.e., values
             edgeServer.kingSendToAll(values);
         }
-        this.Delta_clear_list = (List<BigInteger>)edgeServer.readFromKing();
+        this.Delta_clear_list = (List<BigInteger>) edgeServer.readFromKing();
     }
 }
 

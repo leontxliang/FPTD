@@ -1,7 +1,6 @@
 package fptd.offline;
 
 import fptd.Share;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +35,7 @@ public class OfflineDivisionGate extends OfflineGate {
         List<BigInteger> r_list = new ArrayList<>();
         List<BigInteger> r1_list = new ArrayList<>();
         List<BigInteger> r2_list = new ArrayList<>();
-        for(int i = 0; i < dim; i++) {
+        for (int i = 0; i < dim; i++) {
             BigInteger r = new BigInteger(l + sigma, rand);
             BigInteger r1 = new BigInteger(e + sigma, rand);
             BigInteger r2 = new BigInteger(l + sigma, rand);

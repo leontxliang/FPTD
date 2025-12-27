@@ -1,7 +1,6 @@
 package fptd.protocols;
 
 import fptd.Share;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +13,7 @@ public class CombinationGate extends Gate {
     public CombinationGate(Gate... inputGates) {
         super(inputGates);
         this.dim = 0;
-        for(Gate gate : inputGates) {
+        for (Gate gate : inputGates) {
             this.dim = gate.dim + dim;
         }
     }
@@ -26,18 +25,18 @@ public class CombinationGate extends Gate {
     @Override
     void doRunOnline() {
         List<Share> new_lambda_share_list = new ArrayList<>();
-        this.firstGate().lambda_share_list.forEach(x->{
+        this.firstGate().lambda_share_list.forEach(x -> {
             new_lambda_share_list.add(x);
         });
         List<BigInteger> new_Delta_clear_list = new ArrayList<>();
-        this.firstGate().Delta_clear_list.forEach(x->{
+        this.firstGate().Delta_clear_list.forEach(x -> {
             new_Delta_clear_list.add(x);
         });
-        for(int gateIdx = 1; gateIdx < this.inputGates.length; gateIdx++) {
-            inputGates[gateIdx].lambda_share_list.forEach(x->{
+        for (int gateIdx = 1; gateIdx < this.inputGates.length; gateIdx++) {
+            inputGates[gateIdx].lambda_share_list.forEach(x -> {
                 new_lambda_share_list.add(x);
             });
-            inputGates[gateIdx].Delta_clear_list.forEach(x->{
+            inputGates[gateIdx].Delta_clear_list.forEach(x -> {
                 new_Delta_clear_list.add(x);
             });
         }

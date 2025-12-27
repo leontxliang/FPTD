@@ -3,13 +3,12 @@ package fptd.protocols;
 import fptd.Share;
 import fptd.utils.LinearAlgebra;
 import fptd.utils.Tool;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class DotProductGate extends Gate {
+
     private List<Share> a_shr;
     private List<Share> b_shr;
     private List<Share> c_shr;
@@ -19,7 +18,7 @@ public class DotProductGate extends Gate {
 
     public DotProductGate(Gate inputX, Gate inputY) {
         super(inputX, inputY);
-        if(inputX.getDim() != inputY.getDim()) {
+        if (inputX.getDim() != inputY.getDim()) {
             throw new IllegalArgumentException("Input dimensions don't match");
         }
         this.dim = 1;
@@ -59,7 +58,7 @@ public class DotProductGate extends Gate {
 
         //To open Delta_z in the clear
         edgeServer.sendToKing(Delta_z_shr);
-        if(edgeServer.isKing()){
+        if (edgeServer.isKing()) {
             List<Object> shares = edgeServer.kingReadFromAll();
             List<BigInteger> values = Tool.openShares2Values(1, shares);
 
@@ -70,12 +69,12 @@ public class DotProductGate extends Gate {
         }
         //To eliminate the rounding factors
         BigInteger roundingFactorAll = BigInteger.ONE;
-        for(BigInteger rounding: roundingFactorsToEliminate) {
+        for (BigInteger rounding : roundingFactorsToEliminate) {
             roundingFactorAll = roundingFactorAll.multiply(rounding);
         }
-        List<BigInteger> DeltaTempList = (List<BigInteger>)edgeServer.readFromKing();
+        List<BigInteger> DeltaTempList = (List<BigInteger>) edgeServer.readFromKing();
         this.Delta_clear_list = new ArrayList<>();
-        for(BigInteger delta: DeltaTempList) {
+        for (BigInteger delta : DeltaTempList) {
             this.Delta_clear_list.add(delta.divide(roundingFactorAll));
         }
     }

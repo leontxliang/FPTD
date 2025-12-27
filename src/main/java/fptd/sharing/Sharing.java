@@ -1,7 +1,6 @@
 package fptd.sharing;
 
 import fptd.Share;
-
 import java.math.BigInteger;
 import java.util.List;
 

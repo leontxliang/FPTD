@@ -3,7 +3,6 @@ package fptd.protocols;
 import fptd.Share;
 import fptd.utils.LinearAlgebra;
 import fptd.utils.Tool;
-
 import java.math.BigInteger;
 import java.util.List;
 
@@ -17,7 +16,7 @@ public class ElemWiseMultiplyGate extends Gate {
 
     public ElemWiseMultiplyGate(Gate inputX, Gate inputY) {
         super(inputX, inputY);
-        if(inputX.getDim() != inputY.getDim()) {
+        if (inputX.getDim() != inputY.getDim()) {
             throw new IllegalArgumentException("Input dimensions do not match");
         }
     }
@@ -50,7 +49,7 @@ public class ElemWiseMultiplyGate extends Gate {
 
         //To open Delta_z in the clear
         edgeServer.sendToKing(Delta_z_shr);
-        if(edgeServer.isKing()){
+        if (edgeServer.isKing()) {
             List<Object> shares = edgeServer.kingReadFromAll();
             List<BigInteger> values = Tool.openShares2Values(dim, shares);
 
@@ -59,7 +58,7 @@ public class ElemWiseMultiplyGate extends Gate {
             //Let other servers know Delta_clear_list, i.e., values
             edgeServer.kingSendToAll(values);
         }
-        this.Delta_clear_list = (List<BigInteger>)edgeServer.readFromKing();
+        this.Delta_clear_list = (List<BigInteger>) edgeServer.readFromKing();
     }
 
 }

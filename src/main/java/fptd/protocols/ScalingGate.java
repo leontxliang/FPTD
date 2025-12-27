@@ -24,7 +24,7 @@ public class ScalingGate extends Gate {
     @Override
     void doRunOnline() {
         this.Delta_clear_list = new ArrayList<>();
-        for(BigInteger Delta: this.firstGate().Delta_clear_list){
+        for (BigInteger Delta : this.firstGate().Delta_clear_list) {
             this.Delta_clear_list.add(Delta.multiply(this.roundingFactor));
         }
     }

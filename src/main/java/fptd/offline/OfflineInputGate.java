@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.util.Random;
 
 public class OfflineInputGate extends OfflineGate {
+
     private int owner_id;
 
     public OfflineInputGate(FakeParty fakeParty, int dim, int owner_id) {

@@ -18,19 +18,19 @@ public class Share implements Serializable {
         return shr;
     }
 
-    public Share add(Share shr2){
+    public Share add(Share shr2) {
         return new Share(this.party_id, this.shr.add(shr2.getShr()).mod(Params.P));
     }
 
-    public Share add(BigInteger shr){
+    public Share add(BigInteger shr) {
         return new Share(this.party_id, this.shr.add(shr).mod(Params.P));
     }
 
-    public Share subtract(Share shr2){
+    public Share subtract(Share shr2) {
         return new Share(this.party_id, this.shr.subtract(shr2.getShr()).mod(Params.P));
     }
 
-    public Share subtract(BigInteger constant){
+    public Share subtract(BigInteger constant) {
         return new Share(this.party_id, this.shr.subtract(constant).mod(Params.P));
     }
 
@@ -38,14 +38,14 @@ public class Share implements Serializable {
         return party_id;
     }
 
-    public Share multiply(BigInteger constant){
+    public Share multiply(BigInteger constant) {
         return new Share(this.party_id, this.shr.multiply(constant).mod(Params.P));
     }
 
     /**
      * return a new generated Share obj
      */
-    public Share setValue(BigInteger newValue){
+    public Share setValue(BigInteger newValue) {
         return new Share(this.party_id, newValue.mod(Params.P));
     }
 

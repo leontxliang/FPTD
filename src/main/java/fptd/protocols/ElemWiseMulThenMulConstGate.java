@@ -3,7 +3,6 @@ package fptd.protocols;
 import fptd.Share;
 import fptd.utils.LinearAlgebra;
 import fptd.utils.Tool;
-
 import java.math.BigInteger;
 import java.util.List;
 
@@ -19,7 +18,7 @@ public class ElemWiseMulThenMulConstGate extends Gate {
 
     public ElemWiseMulThenMulConstGate(Gate inputX, Gate inputY, List<BigInteger> constants) {
         super(inputX, inputY);
-        if(inputX.getDim() != inputY.getDim()) {
+        if (inputX.getDim() != inputY.getDim()) {
             throw new IllegalArgumentException("Input dimensions do not match");
         }
         this.constants = constants;
@@ -53,7 +52,7 @@ public class ElemWiseMulThenMulConstGate extends Gate {
         Delta_z_shr = LinearAlgebra.subtractSharesVec(Delta_z_shr, LinearAlgebra.elemWiseMultiply2(b_shr, temp_x));
 
         //Multiply the constant
-        for(int i = 0; i < Delta_z_shr.size(); i++) {
+        for (int i = 0; i < Delta_z_shr.size(); i++) {
             BigInteger constant = constants.get(i);
             Share s = Delta_z_shr.get(i);
             Delta_z_shr.set(i, s.multiply(constant)); // update Delta_z_shr
@@ -64,14 +63,14 @@ public class ElemWiseMulThenMulConstGate extends Gate {
 
         //To open Delta_z in the clear
         edgeServer.sendToKing(Delta_z_shr);
-        if(edgeServer.isKing()){
+        if (edgeServer.isKing()) {
             List<Object> shares = edgeServer.kingReadFromAll();
             List<BigInteger> values = Tool.openShares2Values(dim, shares);
             values = LinearAlgebra.addBigIntVec(values, temp_xy); // temp_xy is not shared with other servers
             //Let other servers know Delta_clear_list, i.e., values
             edgeServer.kingSendToAll(values);
         }
-        this.Delta_clear_list = (List<BigInteger>)edgeServer.readFromKing();
+        this.Delta_clear_list = (List<BigInteger>) edgeServer.readFromKing();
     }
 
 }

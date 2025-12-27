@@ -1,13 +1,14 @@
 package fptd.sharing;
 
-import fptd.Params;
-import fptd.Share;
-
-import java.math.BigInteger;
-import java.util.*;
-
 import static fptd.Params.N;
 import static fptd.Params.T;
+
+import fptd.Params;
+import fptd.Share;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class ShamirSharing extends Sharing {
 
@@ -26,8 +27,6 @@ public class ShamirSharing extends Sharing {
         this.threshold = threshold;
         this.totalShares = totalShares;
     }
-
-
 
     @Override
     public List<Share> getShares(BigInteger secret) {
@@ -52,7 +51,7 @@ public class ShamirSharing extends Sharing {
         for (int x = 1; x <= totalShares; x++) {
             BigInteger y = evaluatePolynomial(coefficients, BigInteger.valueOf(x));
             //使用x=1开始计算多项式，但Share中的idx表示的是edge server的下标，从0开始
-            shares.add(new Share(x-1, y));
+            shares.add(new Share(x - 1, y));
         }
         return shares;
     }
@@ -69,7 +68,9 @@ public class ShamirSharing extends Sharing {
             BigInteger numerator = BigInteger.ONE;
             BigInteger denominator = BigInteger.ONE;
             for (int j = 0; j < threshold; j++) {
-                if (i == j) continue;
+                if (i == j) {
+                    continue;
+                }
 
                 Share otherShare = shares.get(j);
                 int x_other = otherShare.getParty_id() + 1;//
